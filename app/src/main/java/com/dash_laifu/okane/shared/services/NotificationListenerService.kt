@@ -55,6 +55,17 @@ class NotificationListenerService : NotificationListenerService() {
         instance = this
         Log.d(TAG, "NotificationListenerService connected")
         Log.d(TAG, "Number of listeners registered: ${listeners.size}")
+        
+        // Ensure repository is initialized when service connects
+        // This is important for when the service starts independently of the main app
+        try {
+            val repositoryClass = Class.forName("com.dash_laifu.okane.features.notificationlog.data.NotificationRepository")
+            val getInstanceMethod = repositoryClass.getMethod("getInstance", Class.forName("android.content.Context"))
+            getInstanceMethod.invoke(null, applicationContext)
+            Log.d(TAG, "Repository initialized from service")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to initialize repository from service", e)
+        }
     }
 
     override fun onListenerDisconnected() {
@@ -80,9 +91,9 @@ class NotificationListenerService : NotificationListenerService() {
 
         Log.d(TAG, "Notification details - App: $appName, Title: '$title', Text: '$text'")
 
-        // Skip empty notifications and our own notifications
-        if ((title.isEmpty() && text.isEmpty()) || sbn.packageName == packageName) {
-            Log.d(TAG, "Skipping notification - empty or from own app")
+        // Skip empty notifications
+        if (title.isEmpty() && text.isEmpty()) {
+            Log.d(TAG, "Skipping notification - empty content")
             wakeLock?.release()
             return
         }

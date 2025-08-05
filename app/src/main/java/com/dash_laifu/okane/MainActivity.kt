@@ -4,8 +4,10 @@ import android.Manifest
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.Log
@@ -16,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.dash_laifu.okane.features.notificationlog.data.NotificationRepository
 import com.dash_laifu.okane.features.notificationlog.ui.NotificationLogFragment
 
 class MainActivity : AppCompatActivity() {
@@ -61,22 +64,47 @@ class MainActivity : AppCompatActivity() {
         if (!isNotificationAccessGranted()) {
             showNotificationAccessDialog()
         } else {
-            // Add the notification log fragment
-            if (supportFragmentManager.findFragmentById(R.id.main) == null) {
-                supportFragmentManager.beginTransaction()
-                    .replace(R.id.main, NotificationLogFragment())
-                    .commit()
+            // Check battery optimization
+            checkBatteryOptimization()
+        }
+    }
+
+    private fun checkBatteryOptimization() {
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                showBatteryOptimizationDialog()
+                return
             }
+        }
+        
+        // Initialize repository and show fragment
+        initializeApp()
+    }
+
+    private fun initializeApp() {
+        // Initialize the repository singleton to ensure the service listener is registered
+        NotificationRepository.getInstance(applicationContext)
+        
+        // Add the notification log fragment
+        if (supportFragmentManager.findFragmentById(R.id.main) == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.main, NotificationLogFragment())
+                .commit()
         }
     }
 
     override fun onResume() {
         super.onResume()
-        // Re-check permission when user returns from settings
-        if (isNotificationAccessGranted() && supportFragmentManager.findFragmentById(R.id.main) == null) {
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.main, NotificationLogFragment())
-                .commit()
+        // Re-check permissions when user returns from settings
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+        val batteryOptimized = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            !powerManager.isIgnoringBatteryOptimizations(packageName)
+        } else false
+        
+        if (isNotificationAccessGranted() && !batteryOptimized && 
+            supportFragmentManager.findFragmentById(R.id.main) == null) {
+            initializeApp()
         }
     }
 
@@ -106,8 +134,39 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun showBatteryOptimizationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Battery Optimization")
+            .setMessage("To ensure notifications are captured even when the app is not running, please disable battery optimization for this app.")
+            .setPositiveButton("Open Settings") { _, _ ->
+                openBatteryOptimizationSettings()
+            }
+            .setNegativeButton("Skip") { _, _ ->
+                initializeApp()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
     private fun openNotificationAccessSettings() {
         val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
         startActivity(intent)
+    }
+
+    private fun openBatteryOptimizationSettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val intent = Intent().apply {
+                action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                data = Uri.parse("package:$packageName")
+            }
+            try {
+                startActivity(intent)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Failed to open battery optimization settings", e)
+                // Fallback to general battery optimization settings
+                val fallbackIntent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                startActivity(fallbackIntent)
+            }
+        }
     }
 }

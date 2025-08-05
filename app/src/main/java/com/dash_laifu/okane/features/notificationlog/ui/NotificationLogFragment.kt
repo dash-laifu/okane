@@ -54,8 +54,14 @@ class NotificationLogFragment : Fragment() {
 
     private fun setupTestButton(view: View) {
         val testButton = view.findViewById<Button>(R.id.btnTestNotification)
+        val clearButton = view.findViewById<Button>(R.id.btnClearNotifications)
+        
         testButton.setOnClickListener {
             sendTestNotification()
+        }
+        
+        clearButton.setOnClickListener {
+            viewModel.clearNotifications()
         }
     }
 

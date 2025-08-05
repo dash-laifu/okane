@@ -1,20 +1,21 @@
 package com.dash_laifu.okane.features.notificationlog.ui
 
+import android.app.Application
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dash_laifu.okane.features.notificationlog.data.NotificationRepository
 import com.dash_laifu.okane.shared.models.NotificationItem
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class NotificationLogViewModel : ViewModel() {
+class NotificationLogViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
         private const val TAG = "NotificationLogViewModel"
     }
 
-    private val repository = NotificationRepository()
+    private val repository = NotificationRepository.getInstance(application.applicationContext)
 
     val notifications: StateFlow<List<NotificationItem>> = repository.notifications
 
