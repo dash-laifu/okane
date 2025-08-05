@@ -34,18 +34,23 @@ certutil -encode okane-release-key.keystore okane-release-key.keystore.b64
 base64 -i okane-release-key.keystore -o okane-release-key.keystore.b64
 ```
 
-### How to trigger a release:
+### How to create a release:
 
-1. Make your changes
-2. Commit with a message containing the word "release"
+1. Make your changes and commit them
+2. Create and push a version tag:
    ```bash
-   git commit -m "release: version 1.0.0"
+   git tag v0.1.0 -m "release: adds CI/CD"
+   git push origin v0.1.0
    ```
-3. Push to the main branch
-4. The GitHub Action will automatically:
+3. The GitHub Action will automatically:
    - Build a signed release APK
    - Create a GitHub release
    - Upload the APK to the release
+
+### Workflow Behavior:
+- **Regular commits**: Build debug APK only
+- **Tag pushes** (v*): Build signed release APK and create GitHub release
+- **Pull requests**: Build debug APK only
 
 ### Security Notes:
 - **NEVER** commit keystore files to your repository

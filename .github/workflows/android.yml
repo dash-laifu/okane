@@ -3,13 +3,15 @@ name: Android CI
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, 'release')"  # Skip if it's a release
+    if: "!startsWith(github.ref, 'refs/tags/')"
     name: Build Debug APK
 
     steps:
@@ -42,7 +44,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'release')  # Only run if commit includes 'release'
+    if: startsWith(github.ref, 'refs/tags/')  # Only run on tag pushes
     name: Build & Release APK
 
     steps:
