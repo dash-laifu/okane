@@ -55,6 +55,7 @@ class NotificationLogFragment : Fragment() {
     private fun setupTestButton(view: View) {
         val testButton = view.findViewById<Button>(R.id.btnTestNotification)
         val clearButton = view.findViewById<Button>(R.id.btnClearNotifications)
+        val allowedAppsButton = view.findViewById<Button>(R.id.btnAllowedApps)
         
         testButton.setOnClickListener {
             sendTestNotification()
@@ -62,6 +63,24 @@ class NotificationLogFragment : Fragment() {
         
         clearButton.setOnClickListener {
             viewModel.clearNotifications()
+        }
+        
+        allowedAppsButton.setOnClickListener {
+            navigateToAllowedApps()
+        }
+    }
+
+    private fun navigateToAllowedApps() {
+        try {
+            val fragmentClass = Class.forName("com.dash_laifu.okane.features.allowedapps.ui.AllowedAppsFragment")
+            val fragment = fragmentClass.newInstance() as Fragment
+            
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.main, fragment)
+                .addToBackStack(null)
+                .commit()
+        } catch (e: Exception) {
+            Log.e("NotificationLogFragment", "Error navigating to allowed apps", e)
         }
     }
 

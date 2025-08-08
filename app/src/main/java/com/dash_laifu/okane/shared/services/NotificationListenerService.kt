@@ -62,9 +62,15 @@ class NotificationListenerService : NotificationListenerService() {
             val repositoryClass = Class.forName("com.dash_laifu.okane.features.notificationlog.data.NotificationRepository")
             val getInstanceMethod = repositoryClass.getMethod("getInstance", Class.forName("android.content.Context"))
             getInstanceMethod.invoke(null, applicationContext)
-            Log.d(TAG, "Repository initialized from service")
+            Log.d(TAG, "NotificationRepository initialized from service")
+            
+            // Also initialize AllowedAppsRepository
+            val allowedAppsRepositoryClass = Class.forName("com.dash_laifu.okane.features.allowedapps.data.AllowedAppsRepository")
+            val getAllowedAppsInstanceMethod = allowedAppsRepositoryClass.getMethod("getInstance", Class.forName("android.content.Context"))
+            getAllowedAppsInstanceMethod.invoke(null, applicationContext)
+            Log.d(TAG, "AllowedAppsRepository initialized from service")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize repository from service", e)
+            Log.e(TAG, "Failed to initialize repositories from service", e)
         }
     }
 
@@ -79,6 +85,14 @@ class NotificationListenerService : NotificationListenerService() {
         
         // Temporarily acquire wake lock to process notification
         wakeLock?.acquire(5000) // 5 second timeout
+        
+        // Check if this app is allowed
+        val isAllowed = isAppAllowed(sbn.packageName)
+        if (!isAllowed) {
+            Log.d(TAG, "Skipping notification from ${sbn.packageName} - not in allowed list")
+            wakeLock?.release()
+            return
+        }
         
         val notification = sbn.notification
         val extras = notification.extras
@@ -115,6 +129,35 @@ class NotificationListenerService : NotificationListenerService() {
         }
         
         wakeLock?.release()
+    }
+
+    private fun isAppAllowed(packageName: String): Boolean {
+        return try {
+            // Use reflection to access the AllowedAppsRepository
+            val repositoryClass = Class.forName("com.dash_laifu.okane.features.allowedapps.data.AllowedAppsRepository")
+            val getInstanceMethod = repositoryClass.getMethod("getInstance", Class.forName("android.content.Context"))
+            val repositoryInstance = getInstanceMethod.invoke(null, applicationContext)
+            val isPackageAllowedMethod = repositoryClass.getMethod("isPackageAllowed", String::class.java)
+            
+            // Get the current allowed packages for debugging
+            val allowedPackagesField = repositoryClass.getDeclaredField("allowedPackages")
+            allowedPackagesField.isAccessible = true
+            val stateFlow = allowedPackagesField.get(repositoryInstance)
+            val valueMethod = stateFlow.javaClass.getMethod("getValue")
+            val allowedPackages = valueMethod.invoke(stateFlow) as Set<*>
+            
+            Log.d(TAG, "Current allowed packages: $allowedPackages")
+            Log.d(TAG, "Checking package: $packageName")
+            
+            // Check if this package is allowed using the dedicated method
+            val isAllowed = isPackageAllowedMethod.invoke(repositoryInstance, packageName) as Boolean
+            Log.d(TAG, "Package $packageName allowed: $isAllowed")
+            return isAllowed
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking allowed apps, defaulting to allow", e)
+            true // Default to allowing notifications if there's an error
+        }
     }
 
     private fun getApplicationLabel(packageName: String): String {

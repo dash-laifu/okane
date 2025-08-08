@@ -18,7 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="8dp">
 
         <Button
             android:id="@+id/btnTestNotification"
@@ -26,7 +26,16 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Send Test"
-            android:layout_marginEnd="8dp" />
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btnAllowedApps"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Allowed Apps"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp" />
 
         <Button
             android:id="@+id/btnClearNotifications"
@@ -34,7 +43,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Clear All"
-            android:layout_marginStart="8dp" />
+            android:layout_marginStart="4dp" />
 
     </LinearLayout>
 
